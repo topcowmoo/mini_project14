@@ -1,48 +1,38 @@
-const { Model, DataTypes } = require('sequelize');
-const sequelize = require('../config/connection');
+const router = require('express').Router();
+const { Project } = require('../models');
+const withAuth = require('../utils/auth');
 
-class Project extends Model {}
+router.post('/', withAuth, async (req, res) => {
+  try {
+    const newProject = await Project.create({
+      ...req.body,
+      user_id: req.session.user_id,
+    });
 
-Project.init({
-  id: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    primaryKey: true,
-    autoIncrement: true,
-  },
-  name: {
-    type: DataTypes.STRING,
-    allowNull: false,
-  },
-  description: {
-    type: DataTypes.STRING,
-  },
-  date_created: {
-    type: DataTypes.DATE,
-    allowNull: false,
-    defaultValue: DataTypes.DATE,
-    allowNull: false,
-    defaultValue: DataTypes.NOW,
-  },
-  needed_funding: {
-    type: DataTypes.FLOAT,
-    allowNull: false,
-  },
-  user_id: {
-    type: DataTypes.INTEGER,
-    references: {
-      model: 'user',
-      key: 'id',
-    },
-  },
-},
-{
-  sequelize,
-  timestamps: false,
-  freezeTableName: true,
-  underscored: true,
-  modelName: 'project'
-}
-);
+    res.status(200).json(newProject);
+  } catch (err) {
+    res.status(400).json(err);
+  }
+});
 
-module.exports = Project;
+router.delete('/:id', withAuth, async (req, res) => {
+  try {
+    const projectData = await Project.destroy({
+      where: {
+        id: req.params.id,
+        user_id: req.session.user_id,
+      },
+    });
+
+    if (!projectData) {
+      res.status(404).json({ message: 'No project found with this id!' });
+      return;
+    }
+
+    res.status(200).json(projectData);
+  } catch (err) {
+    res.status(500).json(err);
+  }
+});
+
+module.exports = router;
